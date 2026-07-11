@@ -170,7 +170,6 @@ oda_tipleri = ["Superior Oda", "Family Corner Suite", "Family Corner Superior Su
 def master_tabloyu_insa_et(arama_tetiklendi=False):
     tablo_listesi = []
     bölüm = kurlar['EUR'] if hedef_para_birimi == "EUR" else (kurlar['USD'] if hedef_para_birimi == "USD" else 1.0)
-    
     giris_str = baslangic_tarihi.strftime("%Y-%m-%d")
     cikis_str = bitis_tarihi.strftime("%Y-%m-%d")
     
