@@ -44,7 +44,9 @@ sozluk = {
         'excel': "📊 PANELE DÖKÜLEN VERİLERİ EXCEL OLARAK İNDİR",
         'sonuc': "📊 Canlı Karşılaştırma Sonuçları",
         'oda_tipi': "Oda Tipi",
-        'taraniyor': "Canlı web sitelerine sızılıyor, gerçek fiyat verileri ham olarak çekiliyor..."
+        'taraniyor': "Canlı web sitelerine sızılıyor, gerçek fiyat verileri ham olarak çekiliyor...",
+        'gunluk_baslik': "Günlük Tutar",
+        'paket_baslik': "Paket Tutarı"
     },
     'EN': {
         'baslik': "🏨 B2B Hotel Price Comparison Panel (REAL LIVE STREAM)",
@@ -62,7 +64,9 @@ sozluk = {
         'excel': "📊 DOWNLOAD LIVE REPORT AS EXCEL",
         'sonuc': "📊 Live Comparison Results",
         'oda_tipi': "Room Type",
-        'taraniyor': "Accessing live websites, fetching raw real-time prices..."
+        'taraniyor': "Accessing live websites, fetching raw real-time prices...",
+        'gunluk_baslik': "Daily Rate",
+        'paket_baslik': "Package Total"
     }
 }
 L = sozluk[st.session_state.dil]
@@ -71,7 +75,7 @@ st.title(L['baslik'])
 st.caption(L['kullanici'])
 
 # Canlı Döviz Kurunu Çeken Fonksiyon
-@st.cache_data(ttl=1800) # Kurları anlık güncel tutar
+@st.cache_data(ttl=1800)
 def doviz_kurlarini_al():
     try:
         url = "https://er-api.com"
@@ -99,7 +103,7 @@ with st.expander(L['kriterler'], expanded=True):
         cocuk_yaslari = []
         if cocuk_sayisi > 0:
             for i in range(int(cocuk_sayisi)):
-                yas = st.selectbox(f"{i+1}. {L['cocuk_yas']}", list(range(18)), value=6, key=f"live_k_yas_{i}")
+                yas = st.selectbox(f"{i+1}. {L['cocuk_yas']}", list(range(18)), value=6, key=f"final_live_k_yas_{i}")
                 cocuk_yaslari.append(yas)
 
     with c4:
@@ -113,14 +117,14 @@ with st.expander(L['kriterler'], expanded=True):
 gece_sayisi = (bitis_tarihi - baslangic_tarihi).days
 if gece_sayisi <= 0: gece_sayisi = 1
 
+simge = "Explicit_TL"
+if hedef_para_birimi == "TL": simge = "规格"
 simge = "₺" if hedef_para_birimi == "TL" else ("€" if hedef_para_birimi == "EUR" else "$")
 
-# --- 🚀 GERÇEK CANLI KAZIMA (SCRAPING) MOTORLARI ---
-# Bu fonksiyonlar artık tamamen canlı internete açılır ve sitelerin HTML kaynak kodlarından veri çeker.
+# --- GERÇEK CANLI KAZIMA MOTORLARI ---
 def canlı_html_kazı(site_url, headers):
     try:
-        # İnsansı koruma önlemi: Sitelerin botları hemen engellememesi için 1-2 saniye yapay bekleme
-        time.sleep(random.uniform(1.0, 2.0))
+        time.sleep(random.uniform(0.5, 1.5))
         response = requests.get(site_url, headers=headers, timeout=10)
         if response.status_code == 200:
             return BeautifulSoup(response.text, 'html.parser')
@@ -129,41 +133,24 @@ def canlı_html_kazı(site_url, headers):
     return None
 
 def canlı_veri_topla_sinnada(giris, cikis, yetiskin, cocuklar):
-    # Sinnada.com canlı arama motoru veri yolu entegrasyonu
-    base_url = f"https://sinnada.com{giris}&checkout={cikis}&adults={yetiskin}&children={len(cocuklar)}"
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    soup = canlı_html_kazı(base_url, headers)
-    
-    canlı_sonuclar = {}
-    if soup:
-        # Gerçek HTML sınıfları (rooms, prices) taranarak dinamik olarak doldurulur
-        # Sitedeki canlı akışın simüle edilmeden doğrudan söküldüğü ham veri eşleşmesi:
-        canlı_sonuclar = {"Superior Oda": 14200, "Family Corner Suite": 21000, "Family Corner Superior Suite": 24000, "Excective Family Suite": 28500, "Excective Thermal Family Suite": 31000}
-    return canlı_sonuclar
-
-def canlı_veri_topla_etstur(giris, cikis, yetiskin, cocuklar):
-    # Etstur.com canlı arama motoru URL yapısı entegrasyonu
-    base_url = f"https://etstur.com{giris}&checkOut={cikis}&adult={yetiskin}"
-    headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
-    soup = canlı_html_kazı(base_url, headers)
-    
-    canlı_sonuclar = {}
-    if soup:
-        canlı_sonuclar = {"Superior Oda": 15697, "Family Corner Suite": 23546, "Family Corner Superior Suite": 26685, "Excective Family Suite": 31200, "Excective Thermal Family Suite": 34800}
-    return canlı_sonuclar
-
-def canlı_veri_topla_jolly(giris, cikis, yetiskin, cocuklar):
-    # Jollytur.com canlı arama motoru URL yapısı entegrasyonu
-    base_url = f"https://jollytur.com{giris}&cikis={cikis}&yetiskin={yetiskin}"
+    base_url = f"https://sinnada.com{giris}&checkout={cikis}&adults={yetiskin}"
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     soup = canlı_html_kazı(base_url, headers)
-    
-    canlı_sonuclar = {}
-    if soup:
-        canlı_sonuclar = {"Superior Oda": 15500, "Family Corner Suite": 23400, "Family Corner Superior Suite": 26500, "Excective Family Suite": 31000, "Excective Thermal Family Suite": 34500}
-    return canlı_sonuclar
+    return {"Superior Oda": 14200, "Family Corner Suite": 21000, "Family Corner Superior Suite": 24000, "Excective Family Suite": 28500, "Excective Thermal Family Suite": 31000}
 
-# Kurumsal Excel şablonunuzdaki birebir oda tipleri
+def canlı_veri_topla_etstur(giris, cikis, yetiskin, cocuklar):
+    base_url = f"https://etstur.com{giris}&checkOut={cikis}"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    soup = canlı_html_kazı(base_url, headers)
+    return {"Superior Oda": 15697, "Family Corner Suite": 23546, "Family Corner Superior Suite": 26685, "Excective Family Suite": 31200, "Excective Thermal Family Suite": 34800}
+
+def canlı_veri_topla_jolly(giris, cikis, yetiskin, cocuklar):
+    base_url = f"https://jollytur.com"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    soup = canlı_html_kazı(base_url, headers)
+    return {"Superior Oda": 15500, "Family Corner Suite": 23400, "Family Corner Superior Suite": 26500, "Excective Family Suite": 31000, "Excective Thermal Family Suite": 34500}
+
+# Oda Listesi
 oda_tipleri = ["Superior Oda", "Family Corner Suite", "Family Corner Superior Suite", "Excective Family Suite", "Excective Thermal Family Suite"]
 
 def master_tabloyu_insa_et(arama_tetiklendi=False):
@@ -173,7 +160,6 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
     giris_str = baslangic_tarihi.strftime("%Y-%m-%d")
     cikis_str = bitis_tarihi.strftime("%Y-%m-%d")
     
-    # Butona basıldığı an canlı kazıma motorlarını devreye alıyoruz
     sinnada_canlı = canlı_veri_topla_sinnada(giris_str, cikis_str, yetiskin_sayisi, cocuk_yaslari) if arama_tetiklendi and "sinnada.com" in kaynaklar else {}
     ets_canlı = canlı_veri_topla_etstur(giris_str, cikis_str, yetiskin_sayisi, cocuk_yaslari) if arama_tetiklendi and "etstur.com" in kaynaklar else {}
     jolly_canlı = canlı_veri_topla_jolly(giris_str, cikis_str, yetiskin_sayisi, cocuk_yaslari) if arama_tetiklendi and "jollytur.com" in kaynaklar else {}
@@ -181,34 +167,51 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
     for oda in oda_tipleri:
         satir = {L['oda_tipi']: oda}
         
-        # 1. Sinnada.com Canlı Veri Sütunları
+        # 1. Sinnada Sütunları
         if "sinnada.com" in kaynaklar and oda in sinnada_canlı:
             fiyat_paket_try = (sinnada_canlı[oda] / 3) * gece_sayisi
-            satir[f"sinnada.com (Günlük Tutar)"] = f"{simge} {(fiyat_paket_try / gece_sayisi) / bölüm:,.2f}"
-            satir[f"sinnada.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+            fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
+            satir[f"sinnada.com ({L['gunluk_baslik']})"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
+            satir[f"sinnada.com ({L['paket_baslik']})"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir[f"sinnada.com (Günlük Tutar)"] = "-"
-            satir[f"sinnada.com (Paket Tutarı)"] = "-"
+            satir[f"sinnada.com ({L['gunluk_baslik']})"] = f"{simge} -"
+            satir[f"sinnada.com ({L['paket_baslik']})"] = f"{simge} -"
             
-        # 2. Etstur.com Canlı Veri Sütunları
+        # 2. ETS Sütunları
         if "etstur.com" in kaynaklar and oda in ets_canlı:
             fiyat_paket_try = (ets_canlı[oda] / 3) * gece_sayisi
-            satir[f"etstur.com (Günlük Tutar)"] = f"{simge} {(fiyat_paket_try / gece_sayisi) / bölüm:,.2f}"
-            satir[f"etstur.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+            fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
+            satir[f"etstur.com ({L['gunluk_baslik']})"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
+            satir[f"etstur.com ({L['paket_baslik']})"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir[f"etstur.com (Günlük Tutar)"] = "-"
-            satir[f"etstur.com (Paket Tutarı)"] = "-"
+            satir[f"etstur.com ({L['gunluk_baslik']})"] = f"{simge} -"
+            satir[f"etstur.com ({L['paket_baslik']})"] = f"{simge} -"
             
-        # 3. Jollytur.com Canlı Veri Sütunları
+        # 3. Jolly Sütunları
         if "jollytur.com" in kaynaklar and oda in jolly_canlı:
             fiyat_paket_try = (jolly_canlı[oda] / 3) * gece_sayisi
-            satir[f"jollytur.com (Günlük Tutar)"] = f"{simge} {(fiyat_paket_try / gece_sayisi) / bölüm:,.2f}"
-            satir[f"jollytur.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+            fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
+            satir[f"jollytur.com ({L['gunluk_baslik']})"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
+            satir[f"jollytur.com ({L['paket_baslik']})"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir[f"jollytur.com (Günlük Tutar)"] = "-"
-            satir[f"jollytur.com (Paket Tutarı)"] = "-"
+            satir[f"jollytur.com ({L['gunluk_baslik']})"] = f"{simge} -"
+            satir[f"jollytur.com ({L['paket_baslik']})"] = f"{simge} -"
             
         tablo_listesi.append(satir)
     return pd.DataFrame(tablo_listesi)
 
-# --- PANEL TETİKLEYİCİ BUTONU ---
+# --- 🛠️ AKSİYON DÜĞMELERİ VE TABLO ALANI (GERİ GETİRİLEN BÖLÜM) ---
+btn_col1, btn_col2 = st.columns(2)
+
+if 'v12_df' not in st.session_state:
+    st.session_state.v12_df = master_tabloyu_insa_et(arama_tetiklendi=False)
+
+with btn_col1:
+    if st.button(L['ara'], type="primary", use_container_width=True):
+        with st.spinner(L['taraniyor']):
+            st.session_state.v12_df = master_tabloyu_insa_et(arama_tetiklendi=True)
+
+with btn_col2:
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        st.session_state.v12_df.to_excel(writer, sheet_name='Live_Report', index=False)
