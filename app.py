@@ -96,7 +96,7 @@ for oda in oda_tipleri:
         
         if hedef_para_birimi == "TL": satir["halalbooking.com"] = f"{fiyat_tl:,.2f} TL"
         elif hedef_para_birimi == "EUR": satir["halalbooking.com"] = f"{fiyat_tl / kurlar['EUR']:,.2f} €"
-        elif毀edef_para_birimi == "USD": satir["halalbooking.com"] = f"${fiyat_tl / kurlar['USD']:,.2f}"
+        elif hedef_para_birimi == "USD": satir["halalbooking.com"] = f"${fiyat_tl / kurlar['USD']:,.2f}"
     elif "halalbooking.com" in kaynaklar:
         satir["halalbooking.com"] = "Bulunamadı"
         
@@ -104,7 +104,7 @@ for oda in oda_tipleri:
 
 final_df = pd.DataFrame(tablo_listesi)
 
-# --- DÜĞMELER (Düzeltilen Satır) ---
+# --- DÜĞMELER ---
 btn_col1, btn_col2 = st.columns(2)
 with btn_col1:
     search_basildi = st.button("🚀 SEARCH", type="primary", use_container_width=True)
