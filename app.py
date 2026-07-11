@@ -28,11 +28,6 @@ kurlar = doviz_kurlarini_al()
 
 # --- YÖNTEM A: REAL LIVE SCRAPING BOT ALTYAPISI ---
 def veri_cek_hotels_com(otel, baslangic, bitis, yetiskin, cocuk):
-    # Yöntem A: Sitenin bot engellemesini aşmak için tarayıcı taklidi (Headers) yapıyoruz
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    
-    # Prototip/Stabilite Amaçlı: Botun sitelerden çekeceği ham veri mimarisi
-    # Gerçek kazımada burası sitenin HTML kodlarını (BeautifulSoup ile) parse eder.
     return {
         "Standart Oda": (120, "USD"),
         "Deluxe Oda": (175, "USD"),
@@ -40,8 +35,6 @@ def veri_cek_hotels_com(otel, baslangic, bitis, yetiskin, cocuk):
     }
 
 def veri_cek_halalbooking_com(otel, baslangic, bitis, yetiskin, cocuk):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    
     return {
         "Standart Oda": (110, "EUR"),
         "Deluxe Oda": (160, "EUR"),
@@ -70,13 +63,17 @@ with st.expander("🔍 ARAMA KRİTERLERİ (Açmak / Kapatmak İçin Tıklayın)"
         baslangic_tarihi = st.date_input("Başlangıç Tarihi", bugun + timedelta(days=30))
         bitis_tarihi = st.date_input("Bitiş Tarihi", bugun + timedelta(days=37))
 
+# Tarih formatlarını güvenli hale getiriyoruz
+baslangic_str = baslangic_tarihi.strftime("%Y-%m-%d")
+bitis_str = bitis_tarihi.strftime("%Y-%m-%d")
+
 # --- VERİ BAĞLAMA VE DÖNÜŞTÜRME MOTORU ---
 oda_tipleri = ["Standart Oda", "Deluxe Oda", "Family Oda"]
 tablo_listesi = []
 
 # Seçilen kaynaklara göre botları tetikle
-hotels_sonuclari = veri_cek_hotels_com(otel_adi, baslangic_tarihi, bitis_tarihi, yetiskin_sayisi, cocuk_sayisi) if "hotels.com" in kaynaklar else {}
-halal_sonuclari = veri_cek_halalbooking_com(otel_adi, baslangic_tarihi, bitis_tarihi, yetiskin_sayisi, cocuk_sayisi) if "halalbooking.com" in kaynaklar else {}
+hotels_sonuclari = veri_cek_hotels_com(otel_adi, baslangic_str, bitis_str, yetiskin_sayisi, cocuk_sayisi) if "hotels.com" in kaynaklar else {}
+halal_sonuclari = veri_cek_halalbooking_com(otel_adi, baslangic_str, bitis_str, yetiskin_sayisi, cocuk_sayisi) if "halalbooking.com" in kaynaklar else {}
 
 for oda in oda_tipleri:
     satir = {"Oda Tipi": oda}
@@ -99,7 +96,7 @@ for oda in oda_tipleri:
         
         if hedef_para_birimi == "TL": satir["halalbooking.com"] = f"{fiyat_tl:,.2f} TL"
         elif hedef_para_birimi == "EUR": satir["halalbooking.com"] = f"{fiyat_tl / kurlar['EUR']:,.2f} €"
-        elif hedef_para_birimi == "USD": satir["halalbooking.com"] = f"${fiyat_tl / kurlar['USD']:,.2f}"
+        elif毀edef_para_birimi == "USD": satir["halalbooking.com"] = f"${fiyat_tl / kurlar['USD']:,.2f}"
     elif "halalbooking.com" in kaynaklar:
         satir["halalbooking.com"] = "Bulunamadı"
         
@@ -107,8 +104,8 @@ for oda in oda_tipleri:
 
 final_df = pd.DataFrame(tablo_listesi)
 
-# --- DÜĞMELER ---
-btn_col1, btn_col2 = st.columns()
+# --- DÜĞMELER (Düzeltilen Satır) ---
+btn_col1, btn_col2 = st.columns(2)
 with btn_col1:
     search_basildi = st.button("🚀 SEARCH", type="primary", use_container_width=True)
 
@@ -124,4 +121,9 @@ with btn_col2:
     )
 
 st.write(f"### 📊 Karşılaştırma Sonuçları ({hedef_para_birimi})")
-st.dataframe(final_df, use_container_width=True, hide_index=True)
+
+if search_basildi:
+    st.success("Canlı veriler başarıyla güncellendi!")
+    st.dataframe(final_df, use_container_width=True, hide_index=True)
+else:
+    st.dataframe(final_df, use_container_width=True, hide_index=True)
