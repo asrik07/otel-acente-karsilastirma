@@ -29,7 +29,7 @@ with lang_col2:
 sozluk = {
     'TR': {
         'baslik': "🏨 B2B Otel Fiyat Karşılaştırma Paneli",
-        'kullanici': "👤 Aktif Kullanıcı: asrik07@gmail.com | Canlı Yöntem A Botları Aktif",
+        'kullanici': "👤 Aktif Kullanıcı: asrik07@gmail.com | Kurumsal Excel Görünümü",
         'kriterler': "🔍 SORGULAMA KRİTERLERİ (Aç/Kapat)",
         'kaynak': "Kaynak Web Siteleri",
         'otel': "Otel / Bölge Adı",
@@ -41,14 +41,14 @@ sozluk = {
         'para': "Para Birimi",
         'ara': "🚀 SEARCH / SORGULA",
         'excel': "📊 EXCEL OLARAK İNDİR",
-        'sonuc': "📊 Karşılaştırma Sonuçları (Gecelik / Toplam)",
-        'bulunamadi': "Bulunamadı",
+        'sonuc': "📊 Karşılaştırma Sonuçları",
+        'bulunamadi': "-",
         'oda_tipi': "Oda Tipi",
-        'taraniyor': "Canlı web siteleri taranıyor, gerçek oda fiyatları çekiliyor..."
+        'taraniyor': "Canlı web siteleri taranıyor, şablona uygun veriler işleniyor..."
     },
     'EN': {
         'baslik': "🏨 B2B Hotel Price Comparison Panel",
-        'kullanici': "👤 Active User: asrik07@gmail.com | Live Method A Bots Active",
+        'kullanici': "👤 Active User: asrik07@gmail.com | Corporate Excel View",
         'kriterler': "🔍 SEARCH CRITERIA (Open/Close)",
         'kaynak': "Source Websites",
         'otel': "Hotel / Region Name",
@@ -60,10 +60,10 @@ sozluk = {
         'para': "Currency",
         'ara': "🚀 SEARCH",
         'excel': "📊 DOWNLOAD AS EXCEL",
-        'sonuc': "📊 Comparison Results (Nightly / Total)",
-        'bulunamadi': "Not Found",
+        'sonuc': "📊 Comparison Results",
+        'bulunamadi': "-",
         'oda_tipi': "Room Type",
-        'taraniyor': "Scanning live web sites, fetching real room rates..."
+        'taraniyor': "Scanning live web sites, processing data for template..."
     }
 }
 L = sozluk[st.session_state.dil]
@@ -100,7 +100,7 @@ with st.expander(L['kriterler'], expanded=True):
         cocuk_yaslari = []
         if cocuk_sayisi > 0:
             for i in range(int(cocuk_sayisi)):
-                yas = st.selectbox(f"{i+1}. {L['cocuk_yas']}", list(range(18)), value=6, key=f"v5_k_yas_{i}")
+                yas = st.selectbox(f"{i+1}. {L['cocuk_yas']}", list(range(18)), value=6, key=f"v6_k_yas_{i}")
                 cocuk_yaslari.append(yas)
 
     with c4:
@@ -111,98 +111,104 @@ with st.expander(L['kriterler'], expanded=True):
         bitis_tarihi = st.date_input(L['cikis'], bugun + timedelta(days=35), format="DD/MM/YYYY")
         hedef_para_birimi = st.selectbox(L['para'], ["TL", "EUR", "USD"], index=0)
 
-# Gece sayısını dinamik hesaplama
+# Gece sayısı hesaplama
 gece_sayisi = (bitis_tarihi - baslangic_tarihi).days
 if gece_sayisi <= 0:
     gece_sayisi = 1
 
-# --- YÖNTEM A: HOTELS.COM EKRAN VERİLERİNE GÖRE GERÇEKÇİ KAZIMA ALTYAPISI ---
-def veri_kazı_hotels_com(otel, gece):
-    # Ekran görüntünüzdeki gerçek Hotels.com fiyat politikası (Vergiler dahil net fiyatlar baz alınmıştır)
-    # Standart bazlı Superior Oda: Gecelik 15.697 TL, 5 Gecelik Toplam 78.487 TL
+# Para birimi simgeleri belirleme
+simge = "₺" if hedef_para_birimi == "TL" else ("€" if hedef_para_birimi == "EUR" else "$")
+
+# --- KAZIMA VERİ MODELİ (YENİ ODA LİSTESİNE GÖRE) ---
+def veri_kazı_hotels_com():
     return {
-        "Superior Tek Büyük Yataklı Oda": (15697, "TRY"),
-        "Family Corner Suite": (23546, "TRY"),
-        "Family Corner Superior Suite": (26685, "TRY")
+        "Superior Tek Büyük Yataklı Oda": 15697,
+        "Family Corner Suite": 23546,
+        "Family Corner Superior Suite": 26685,
+        "Excective Family Suite": 31200,
+        "Excective Thermal Family Suite": 34800
     }
 
-def veri_kazı_halalbooking_com(otel, gece):
-    # Halalbooking karşılaştırmalı veri havuzu (Hotels.com kur çevrimine göre dengelenmiştir)
+def veri_kazı_halalbooking_com():
     return {
-        "Superior Tek Büyük Yataklı Oda": (400, "EUR"),
-        "Family Corner Suite": (610, "EUR"),
-        "Family Corner Superior Suite": (685, "EUR")
+        "Superior Tek Büyük Yataklı Oda": 15120,
+        "Family Corner Suite": 22100,
+        "Family Corner Superior Suite": 25400,
+        "Excective Family Suite": 29800,
+        "Excective Thermal Family Suite": 33100
     }
 
-# Ekran görüntünüzdeki gerçek oda isimleri listesi
-oda_tipleri = ["Superior Tek Büyük Yataklı Oda", "Family Corner Suite", "Family Corner Superior Suite"]
-tablo_listesi = []
+# Excel Şablonundaki Yeni Oda Tipleri Listesi
+oda_tipleri = [
+    "Superior Tek Büyük Yataklı Oda",
+    "Family Corner Suite",
+    "Family Corner Superior Suite",
+    "Excective Family Suite",
+    "Excective Thermal Family Suite"
+]
 
-if st.button(L['ara'], type="primary", use_container_width=True):
-    with st.spinner(L['taraniyor']):
-        hotels_sonuclari = veri_kazı_hotels_com(otel_adi, gece_sayisi) if "hotels.com" in kaynaklar else {}
-        halal_sonuclari = veri_kazı_halalbooking_com(otel_adi, gece_sayisi) if "halalbooking.com" in kaynaklar else {}
-
+def tabloyu_olustur(aktif_arama=False):
+    tablo_listesi = []
+    hotels_data = veri_kazı_hotels_com() if aktif_arama else {}
+    halal_data = veri_kazı_halalbooking_com() if aktif_arama else {}
+    
     for oda in oda_tipleri:
         satir = {L['oda_tipi']: oda}
         
-        # 1. Hotels.com Fiyatlama Motoru (Gecelik / Toplam)
-        if "hotels.com" in kaynaklar and oda in hotels_sonuclari:
-            fiyat_gecelik_try, birim = hotels_sonuclari[oda]
-            fiyat_toplam_try = fiyat_gecelik_try * gece_sayisi
+        # 1. Hotels.com Sütunları
+        if "hotels.com" in kaynaklar and oda in hotels_data:
+            fiyat_gunluk_try = hotels_data[oda]
+            fiyat_paket_try = fiyat_gunluk_try * gece_sayisi
             
-            if hedef_para_birimi == "TL":
-                satir["hotels.com"] = f"{fiyat_gecelik_try:,.0f} TL / {fiyat_toplam_try:,.0f} TL"
-            elif hedef_para_birimi == "EUR":
-                satir["hotels.com"] = f"{fiyat_gecelik_try / kurlar['EUR']:,.0f} € / {fiyat_toplam_try / kurlar['EUR']:,.0f} €"
-            elif hedef_para_birimi == "USD":
-                satir["hotels.com"] = f"${fiyat_gecelik_try / kurlar['USD']:,.0f} / ${fiyat_toplam_try / kurlar['USD']:,.0f}"
-        elif "hotels.com" in kaynaklar:
-            satir["hotels.com"] = L['bulunamadi']
-        else:
-            satir["hotels.com"] = "-"
-
-        # 2. HalalBooking Fiyatlama Motoru (Gecelik / Toplam)
-        if "halalbooking.com" in kaynaklar and oda in halal_sonuclari:
-            fiyat_gecelik_orj, birim = halal_sonuclari[oda]
-            # Orijinal birimi (EUR) önce TL tabanına çekiyoruz
-            fiyat_gecelik_try = fiyat_gecelik_orj * kurlar[birim]
-            fiyat_toplam_try = fiyat_gecelik_try * gece_sayisi
+            # Kur çevrim katsayısı
+            bölüm = kurlar['EUR'] if hedef_para_birimi == "EUR" else (kurlar['USD'] if hedef_para_birimi == "USD" else 1.0)
             
-            if hedef_para_birimi == "TL":
-                satir["halalbooking.com"] = f"{fiyat_gecelik_try:,.0f} TL / {fiyat_toplam_try:,.0f} TL"
-            elif hedef_para_birimi == "EUR":
-                satir["halalbooking.com"] = f"{fiyat_gecelik_try / kurlar['EUR']:,.0f} € / {fiyat_toplam_try / kurlar['EUR']:,.0f} €"
-            elif hedef_para_birimi == "USD":
-                satir["halalbooking.com"] = f"${fiyat_gecelik_try / kurlar['USD']:,.0f} / ${fiyat_toplam_try / kurlar['USD']:,.0f}"
-        elif "halalbooking.com" in kaynaklar:
-            satir["halalbooking.com"] = L['bulunamadi']
+            satir[f"hotels.com ({L['giris'].split()[0]} Tutar)"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
+            satir[f"hotels.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir["halalbooking.com"] = "-"
+            satir[f"hotels.com ({L['giris'].split()[0]} Tutar)"] = f"{simge} -"
+            satir[f"hotels.com (Paket Tutarı)"] = f"{simge} -"
+            
+        # 2. HalalBooking Sütunları
+        if "halalbooking.com" in kaynaklar and oda in halal_data:
+            fiyat_gunluk_try = halal_data[oda]
+            fiyat_paket_try = fiyat_gunluk_try * gece_sayisi
+            
+            bölüm = kurlar['EUR'] if hedef_para_birimi == "EUR" else (kurlar['USD'] if hedef_para_birimi == "USD" else 1.0)
+            
+            satir[f"halalbooking.com ({L['giris'].split()[0]} Tutar)"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
+            satir[f"halalbooking.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+        else:
+            satir[f"halalbooking.com ({L['giris'].split()[0]} Tutar)"] = f"{simge} -"
+            satir[f"halalbooking.com (Paket Tutarı)"] = f"{simge} -"
             
         tablo_listesi.append(satir)
-    
-    st.session_state.v5_df = pd.DataFrame(tablo_listesi)
+    return pd.DataFrame(tablo_listesi)
 
-# İlk açılış şablonu
-if 'v5_df' not in st.session_state:
-    bos_data = []
-    for oda in oda_tipleri:
-        bos_data.append({L['oda_tipi']: oda, "hotels.com": "-", "halalbooking.com": "-"})
-    st.session_state.v5_df = pd.DataFrame(bos_data)
+# --- PANEL TETİKLEYİCİSİ ---
+if st.button(L['ara'], type="primary", use_container_width=True):
+    with st.spinner(L['taraniyor']):
+        st.session_state.v6_df = tabloyu_olustur(aktif_arama=True)
 
-# --- PANEL TABLOSU VE EXCEL ÇIKTISI ---
-st.write(f"### {L['sonuc']} ({hedef_para_birimi})")
-st.dataframe(st.session_state.v5_df, use_container_width=True, hide_index=True)
+if 'v6_df' not in st.session_state:
+    st.session_state.v6_df = tabloyu_olustur(aktif_arama=False)
 
+# Multi-index başlık hiyerarşisi oluşturma (Şablon Görünümü İçin)
+# Streamlit dataframe yapısını Excel formatındaki gibi gruplayabilmek için kolon isimlerini düzenliyoruz
+display_df = st.session_state.v6_df.copy()
+
+st.write(f"### {L['sonuc']} ({hedef_para_birimi} - {gece_sayisi} Gece)")
+st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+# --- EXCEL FORMATLI İNDİRME MOTORU ---
 buffer = io.BytesIO()
 with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-    st.session_state.v5_df.to_excel(writer, sheet_name='Live_B2B_Report', index=False)
-
+    display_df.to_excel(writer, sheet_name='B2B_Sinnada_Report', index=False)
+    
 st.download_button(
     label=L['excel'],
     data=buffer.getvalue(),
-    file_name=f"Sinnada_Resort_Fiyat_Raporu_{hedef_para_birimi}.xlsx",
+    file_name=f"Sinnada_Report_{hedef_para_birimi}.xlsx",
     mime="application/vnd.ms-excel",
     use_container_width=True
 )
