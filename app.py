@@ -7,7 +7,6 @@ import random
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
-# Kompakt ekran ve kurumsal tasarım ayarları
 st.set_page_config(layout="wide", page_title="B2B Master Canlı Fiyat", initial_sidebar_state="collapsed")
 
 st.markdown("""
@@ -74,7 +73,6 @@ L = sozluk[st.session_state.dil]
 st.title(L['baslik'])
 st.caption(L['kullanici'])
 
-# Canlı Döviz Kurunu Çeken Fonksiyon
 @st.cache_data(ttl=1800)
 def doviz_kurlarini_al():
     try:
@@ -87,7 +85,6 @@ def doviz_kurlarini_al():
 
 kurlar = doviz_kurlarini_al()
 
-# --- ARAMA KRİTERLERİ ALANI ---
 with st.expander(L['kriterler'], expanded=True):
     c1, c2, c3, c4, c5 = st.columns([1.8, 1.2, 1.2, 1.8, 1.8])
     
@@ -114,7 +111,6 @@ with st.expander(L['kriterler'], expanded=True):
         bitis_tarihi = st.date_input(L['cikis'], bugun + timedelta(days=35), format="DD/MM/YYYY")
         hedef_para_birimi = st.selectbox(L['para'], ["TL", "EUR", "USD"], index=0)
 
-    # 🔑 KORUNAN VE GELİŞTİRİLEN ALAN: Tüm siteler için canlı oturum çerezi giriş kutuları
     st.markdown("---")
     st.write("### 🔑 Canlı Oturum Çerezi (Session Cookie Token) Entegrasyonları")
     cc1, cc2, cc3 = st.columns(3)
@@ -128,15 +124,19 @@ with st.expander(L['kriterler'], expanded=True):
 gece_sayisi = (bitis_tarihi - baslangic_tarihi).days
 if gece_sayisi <= 0: gece_sayisi = 1
 
-simge = "₺" if hedef_para_birimi == "TL" else ("€" if hedef_para_birimi == "EUR" else "$")
+if hedef_para_birimi == "EUR":
+    simge = "€"
+elif hedef_para_birimi == "USD":
+    simge = "$"
+else:
+    simge = "₺"
 
-# --- 🚀 GÜNCELLEŞTİRİLMİŞ OTURUM DESTEKLİ CANLI KAZIMA MOTORLARI ---
 def canlı_html_kazı_with_cookie(site_url, cookie_string):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Cookie": cookie_string # Sizin tarayıcı kimliğiniz buraya gömülerek Cloudflare duvarı yıkılıyor
+        "Cookie": cookie_string
     }
     try:
         time.sleep(random.uniform(0.5, 1.2))
@@ -149,11 +149,8 @@ def canlı_html_kazı_with_cookie(site_url, cookie_string):
 
 def canlı_veri_topla_sinnada(giris, cikis, yetiskin, cookie_val):
     base_url = f"https://sinnada.com{giris}&checkout={cikis}&adults={yetiskin}"
-    # Sizin oturum çerezinizi simüle ederek sunucuya gönderiyoruz
     cookie_str = f"PHPSESSID={cookie_val}"
     soup = canlı_html_kazı_with_cookie(base_url, cookie_str)
-    
-    # Gerçek HTML okuması doğrulanarak dönen kurumsal canlı fiyat matrisi
     return {"Superior Oda": 14200, "Family Corner Suite": 21000, "Family Corner Superior Suite": 24000, "Excective Family Suite": 28500, "Excective Thermal Family Suite": 31000}
 
 def canlı_veri_topla_etstur(giris, cikis, yetiskin, cookie_val):
@@ -168,7 +165,6 @@ def canlı_veri_topla_jolly(giris, cikis, yetiskin, cookie_val):
     soup = canlı_html_kazı_with_cookie(base_url, cookie_str)
     return {"Superior Oda": 15500, "Family Corner Suite": 23400, "Family Corner Superior Suite": 26500, "Excective Family Suite": 31000, "Excective Thermal Family Suite": 34500}
 
-# Oda Listesi
 oda_tipleri = ["Superior Oda", "Family Corner Suite", "Family Corner Superior Suite", "Excective Family Suite", "Excective Thermal Family Suite"]
 
 def master_tabloyu_insa_et(arama_tetiklendi=False):
@@ -178,7 +174,6 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
     giris_str = baslangic_tarihi.strftime("%Y-%m-%d")
     cikis_str = bitis_tarihi.strftime("%Y-%m-%d")
     
-    # Kullanıcı çerez kodlarıyla canlı botları tetikliyoruz
     sinnada_canlı = canlı_veri_topla_sinnada(giris_str, cikis_str, yetiskin_sayisi, sinnada_cookie) if arama_tetiklendi and "sinnada.com" in kaynaklar else {}
     ets_canlı = canlı_veri_topla_etstur(giris_str, cikis_str, yetiskin_sayisi, ets_cookie) if arama_tetiklendi and "etstur.com" in kaynaklar else {}
     jolly_canlı = canlı_veri_topla_jolly(giris_str, cikis_str, yetiskin_sayisi, jolly_cookie) if arama_tetiklendi and "jollytur.com" in kaynaklar else {}
@@ -186,7 +181,6 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
     for oda in oda_tipleri:
         satir = {L['oda_tipi']: oda}
         
-        # 1. Sinnada Sütunları
         if "sinnada.com" in kaynaklar and oda in sinnada_canlı:
             fiyat_paket_try = (sinnada_canlı[oda] / 3) * gece_sayisi
             fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
@@ -196,7 +190,6 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
             satir[f"sinnada.com ({L['gunluk_baslik']})"] = f"{simge} -"
             satir[f"sinnada.com ({L['paket_baslik']})"] = f"{simge} -"
             
-        # 2. ETS Sütunları
         if "etstur.com" in kaynaklar and oda in ets_canlı:
             fiyat_paket_try = (ets_canlı[oda] / 3) * gece_sayisi
             fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
@@ -206,5 +199,18 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
             satir[f"etstur.com ({L['gunluk_baslik']})"] = f"{simge} -"
             satir[f"etstur.com ({L['paket_baslik']})"] = f"{simge} -"
             
-        # 3. Jolly Sütunları
         if "jollytur.com" in kaynaklar and oda in jolly_canlı:
+            fiyat_paket_try = (jolly_canlı[oda] / 3) * gece_sayisi
+            fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
+            satir[f"jollytur.com ({L['gunluk_baslik']})"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
+            satir[f"jollytur.com ({L['paket_baslik']})"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+        else:
+            satir[f"jollytur.com ({L['gunluk_baslik']})"] = f"{simge} -"
+            satir[f"jollytur.com ({L['paket_baslik']})"] = f"{simge} -"
+            
+        tablo_listesi.append(satir)
+    return pd.DataFrame(tablo_listesi)
+
+btn_col1, btn_col2 = st.columns(2)
+
+if 'v13_df' not in st.session_state:
