@@ -5,7 +5,7 @@ import requests
 import time
 import random
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime
 
 st.set_page_config(layout="wide", page_title="B2B Master Canlı Fiyat", initial_sidebar_state="collapsed")
 
@@ -22,7 +22,6 @@ st.markdown("""
 if 'dil' not in st.session_state:
     st.session_state.dil = 'TR'
 
-# 1. GELİŞTİRME: Çerezlerin tarayıcı hafızasında kalıcı olarak saklanması alanı
 if 'cookie_sinnada' not in st.session_state: st.session_state.cookie_sinnada = ""
 if 'cookie_ets' not in st.session_state: st.session_state.cookie_ets = ""
 if 'cookie_jolly' not in st.session_state: st.session_state.cookie_jolly = ""
@@ -42,7 +41,7 @@ sozluk = {
         'cocuk': "Çocuk",
         'cocuk_yas': "Çocuk Yaşı",
         'giris': "Giriş Tarihi",
-        'cikis': "Bitiş Tarihi",
+        'cikis': "Çıkış Tarihi",
         'para': "Para Birimi",
         'ara': "🚀 CANLI SİTELERDEN DOĞRU RAKAMLARI ÇEK",
         'excel': "📊 PANELE DÖKÜLEN VERİLERİ EXCEL OLARAK İNDİR",
@@ -90,8 +89,12 @@ def doviz_kurlarini_al():
 
 kurlar = doviz_kurlarini_al()
 
+# Sabit Başlangıç Değerleri (20.07.2026 - 23.07.2026)
+sabit_giris = datetime.strptime("20-07-2026", "%d-%m-%Y").date()
+sabit_cikis = datetime.strptime("23-07-2026", "%d-%m-%Y").date()
+
 with st.expander(L['kriterler'], expanded=True):
-    c1, c2, c3, c4, c5 = st.columns([1.8, 1.2, 1.2, 1.8, 1.8])
+    c1, c2, c3, c4 = st.columns([2.0, 1.3, 1.3, 2.4])
     
     with c1:
         kaynaklar = st.multiselect(L['kaynak'], ["sinnada.com", "etstur.com", "jollytur.com"], default=["sinnada.com", "etstur.com", "jollytur.com"])
@@ -106,10 +109,9 @@ with st.expander(L['kriterler'], expanded=True):
                 yas = st.selectbox(f"{i+1}. {L['cocuk_yas']}", list(range(18)), value=6, key=f"session_k_yas_{i}")
                 cocuk_yaslari.append(yas)
     with c4:
-        bugun = datetime.now().date()
-        baslangic_tarihi = st.date_input(L['giris'], bugun + timedelta(days=30), format="DD/MM/YYYY")
-    with c5:
-        bitis_tarihi = st.date_input(L['cikis'], bugun + timedelta(days=35), format="DD/MM/YYYY")
+        # GÜNCELLEME: Çıkış Tarihi Giriş Tarihinin Altına Taşındı ve 20-23 Temmuz 2026 Olarak Sabitlendi
+        baslangic_tarihi = st.date_input(L['giris'], sabit_giris, format="DD/MM/YYYY")
+        bitis_tarihi = st.date_input(L['cikis'], sabit_cikis, format="DD/MM/YYYY")
         hedef_para_birimi = st.selectbox(L['para'], ["TL", "EUR", "USD"], index=0)
 
     st.markdown("---")
@@ -144,14 +146,11 @@ def canlı_html_kazı_with_cookie(site_url, cookie_string):
         return None
     return None
 
-# 2. GELİŞTİRME: İçerideki tüm uydurma/sabit rakam havuzları silindi.
-# Fonksiyonlar artık tamamen boş döner, sadece sitenin HTML kodlarından canlı veri okunduğunda dolacaktır.
 def canlı_veri_topla_sinnada(giris, cikis, yetiskin, cookie_val):
     base_url = f"https://sinnada.com{giris}&checkout={cikis}&adults={yetiskin}"
     soup = canlı_html_kazı_with_cookie(base_url, f"PHPSESSID={cookie_val}")
     canlı_fiyatlar = {}
     if soup:
-        # Gerçek kazıma mantığı: HTML içindeki oda adı ve fiyat etiketleri burada parse edilir.
         pass
     return canlı_fiyatlar
 
@@ -218,3 +217,7 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
 
 btn_col1, btn_col2 = st.columns(2)
 
+if 'v13_df' not in st.session_state:
+    st.session_state.v13_df = master_tabloyu_insa_et(arama_tetiklendi=False)
+
+with btn_col1:
