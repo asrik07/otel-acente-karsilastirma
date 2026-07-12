@@ -81,7 +81,6 @@ def doviz_kurlarini_al():
 
 kurlar = doviz_kurlarini_al()
 
-# GÜNCELLEME: Sabit tarihler kaldırıldı, başlangıç olarak bugün ve yarın referans alındı
 bugun = datetime.now().date()
 
 with st.expander(L['kriterler'], expanded=True):
@@ -99,7 +98,6 @@ with st.expander(L['kriterler'], expanded=True):
                 yas = st.selectbox(f"{i+1}. {L['cocuk_yas']}", list(range(18)), value=6, key=f"ai_final_k_yas_{i}")
                 cocuk_yaslari.append(yas)
     with c4:
-        # GÜNCELLEME: Kullanıcı takvim üzerinden tamamen özgürce manuel seçim yapar
         baslangic_tarihi = st.date_input(L['giris'], bugun + timedelta(days=7), format="DD/MM/YYYY")
         bitis_tarihi = st.date_input(L['cikis'], baslangic_tarihi + timedelta(days=3), format="DD/MM/YYYY")
         hedef_para_birimi = st.selectbox(L['para'], ["TL", "EUR", "USD"], index=0)
@@ -207,3 +205,10 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
             
         if "jollytur.com" in kaynaklar and oda in jolly_canli:
             fiyat_paket_try = (jolly_canli[oda] / 3) * gece_sayisi
+            satir["jollytur.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+        else:
+            satir["jollytur.com (Paket Tutarı)"] = "-"
+            
+        tablo_listesi.append(satir)
+    return pd.DataFrame(tablo_listesi)
+
