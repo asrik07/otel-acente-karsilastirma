@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import io
 import requests
-import time
-import random
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
@@ -82,7 +80,6 @@ def doviz_kurlarini_al():
         return {"EUR": 38.50, "USD": 35.00, "TRY": 1.0}
 
 kurlar = doviz_kurlarini_al()
-
 bugun = datetime.now().date()
 
 with st.expander(L['kriterler'], expanded=True):
@@ -183,7 +180,6 @@ oda_tipleri = ["Superior Oda", "Family Corner Suite", "Family Corner Superior Su
 def master_tabloyu_insa_et(arama_tetiklendi=False):
     tablo_listesi = []
     bölüm = kurlar['EUR'] if hedef_para_birimi == "EUR" else (kurlar['USD'] if hedef_para_birimi == "USD" else 1.0)
-    
     giris_str = baslangic_tarihi.strftime("%Y-%m-%d")
     cikis_str = bitis_tarihi.strftime("%Y-%m-%d")
     
@@ -196,20 +192,24 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
         
         if "sinnada.com" in kaynaklar and oda in sinnada_canli:
             fiyat_paket_try = (sinnada_canli[oda] / 3) * gece_sayisi
-            satir["sinnada.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+            satir["sinnada.com"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir["sinnada.com (Paket Tutarı)"] = "-"
+            satir["sinnada.com"] = "-"
             
         if "etstur.com" in kaynaklar and oda in ets_canli:
             fiyat_paket_try = (ets_canli[oda] / 3) * gece_sayisi
-            satir["etstur.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+            satir["etstur.com"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir["etstur.com (Paket Tutarı)"] = "-"
+            satir["etstur.com"] = "-"
             
         if "jollytur.com" in kaynaklar and oda in jolly_canli:
             fiyat_paket_try = (jolly_canli[oda] / 3) * gece_sayisi
-            satir["jollytur.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+            satir["jollytur.com"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir["jollytur.com (Paket Tutarı)"] = "-"
+            satir["jollytur.com"] = "-"
             
         tablo_listesi.append(satir)
+    return pd.DataFrame(tablo_listesi)
+
+btn_col1, btn_col2 = st.columns(2)
+
