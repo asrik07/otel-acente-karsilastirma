@@ -110,8 +110,12 @@ with st.expander(L['kriterler'], expanded=True):
 gece_sayisi = (bitis_tarihi - baslangic_tarihi).days
 if gece_sayisi <= 0: gece_sayisi = 1
 
-simge = "€" if hedef_para_birimi == "EUR" else ("$" if hedef_para_birimi == "USD" else "₺")
-if hedef_para_birimi == "TL": simge = "₺"
+if hedef_para_birimi == "EUR":
+    simge = "€"
+elif hedef_para_birimi == "USD":
+    simge = "$"
+else:
+    simge = "₺"
 
 API_KEY = "bb047fd3-28d4-4b1b-9347-7a650ef53fed"
 
@@ -128,7 +132,6 @@ def api_ile_canli_html_kazi(target_url):
 def canli_veri_oku_sinnada(giris, cikis, yetiskin):
     target = f"https://sinnada.com{giris}&checkout={cikis}&adults={yetiskin}"
     soup = api_ile_canli_html_kazi(target)
-    # Tamamen bos politikasi geregi, html etiket taramasi gercek verilere gore eslenir
     return {"Superior Oda": 14200*3, "Family Corner Suite": 21000*3, "Family Corner Superior Suite": 24000*3, "Excective Family Suite": 28500*3, "Excective Thermal Family Suite": 31000*3}
 
 def canli_veri_oku_etstur(giris, cikis, yetiskin):
@@ -149,9 +152,9 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
     giris_str = baslangic_tarihi.strftime("%Y-%m-%d")
     cikis_str = bitis_tarihi.strftime("%Y-%m-%d")
     
-    sinnada_canli = canli_veri_oku_sinnada(giris_str, cikis_str, yetiskin_sayisi) if arama_tetiklendi and "sinnada.com" in kaynaklar else {}
-    ets_canli = canli_veri_oku_etstur(giris_str, cikis_str, yetiskin_sayisi) if arama_tetiklendi and "etstur.com" in kaynaklar else {}
-    jolly_canli = canli_veri_oku_jolly(giris_str, cikis_str, yetiskin_sayisi) if arama_tetiklendi and "jollytur.com" in kaynaklar else {}
+    sinnada_canli = canli_veri_oku_sinnada(giris_str, cikis_str, yetiskin_sayisi) if {arama_tetiklendi and "sinnada.com" in kaynaklar} else {}
+    ets_canli = canli_veri_oku_etstur(giris_str, cikis_str, yetiskin_sayisi) if {arama_tetiklendi and "etstur.com" in kaynaklar} else {}
+    jolly_canli = canli_veri_oku_jolly(giris_str, cikis_str, yetiskin_sayisi) if {arama_tetiklendi and "jollytur.com" in kaynaklar} else {}
     
     for oda in oda_tipleri:
         satir = {L['oda_tipi']: oda}
