@@ -105,7 +105,11 @@ gece_sayisi = (bitis_tarihi - baslangic_tarihi).days
 if gece_sayisi <= 0: 
     gece_sayisi = 1
 
-simge = "€" if hedef_para_birimi == "EUR" else ("$" if hedef_para_birimi == "USD" else "₺")
+simge = "₺"
+if hedef_para_birimi == "EUR":
+    simge = "€"
+elif hedef_para_birimi == "USD":
+    simge = "$"
 
 API_KEY = "bb047fd3-28d4-4b1b-9347-7a650ef53fed"
 
@@ -183,9 +187,17 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
     giris_str = baslangic_tarihi.strftime("%Y-%m-%d")
     cikis_str = bitis_tarihi.strftime("%Y-%m-%d")
     
-    sinnada_canli = canli_veri_oku_sinnada(giris_str, cikis_str, yetiskin_sayisi) if (arama_tetiklendi and "sinnada.com" in kaynaklar) else {}
-    ets_canli = canli_veri_oku_etstur(giris_str, cikis_str, yetiskin_sayisi) if (arama_tetiklendi and "etstur.com" in kaynaklar) else {}
-    jolly_canli = canli_veri_oku_jolly(giris_str, cikis_str, yetiskin_sayisi) if (arama_tetiklendi and "jollytur.com" in kaynaklar) else {}
+    sinnada_canli = {}
+    if arama_tetiklendi and "sinnada.com" in kaynaklar:
+        sinnada_canli = canli_veri_oku_sinnada(giris_str, cikis_str, yetiskin_sayisi)
+        
+    ets_canli = {}
+    if arama_tetiklendi and "etstur.com" in kaynaklar:
+        ets_canli = canli_veri_oku_etstur(giris_str, cikis_str, yetiskin_sayisi)
+        
+    jolly_canli = {}
+    if arama_tetiklendi and "jollytur.com" in kaynaklar:
+        jolly_canli = canli_veri_oku_jolly(giris_str, cikis_str, yetiskin_sayisi)
     
     for oda in oda_tipleri:
         satir = {L['oda_tipi']: oda}
@@ -210,6 +222,4 @@ def master_tabloyu_insa_et(arama_tetiklendi=False):
             
         tablo_listesi.append(satir)
     return pd.DataFrame(tablo_listesi)
-
-btn_col1, btn_col2 = st.columns(2)
 
