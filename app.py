@@ -85,8 +85,6 @@ def doviz_kurlarini_al():
 
 kurlar = doviz_kurlarini_al()
 
-sabit_giris = datetime.strptime("20-07-2026", "%d-%m-%Y").date()
-sabit_cikis = datetime.strptime("23-07-2026", "%d-%m-%Y").date()
 
 with st.expander(L['kriterler'], expanded=True):
     c1, c2, c3, c4 = st.columns([2.0, 1.3, 1.3, 2.4])
