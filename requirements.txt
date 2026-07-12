@@ -1,4 +1,4 @@
 pandas
 xlsxwriter
-streamlit
-playwright
+requests
+beautifulsoup4
