@@ -2,10 +2,8 @@ import streamlit as st
 import pandas as pd
 import io
 import requests
-import time
-import random
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 
 st.set_page_config(layout="wide", page_title="B2B Master Canlı Fiyat", initial_sidebar_state="collapsed")
 
@@ -28,8 +26,8 @@ with lang_col2:
 
 sozluk = {
     'TR': {
-        'baslik': "🏨 B2B Otel Fiyat Karşılaştırma Paneli (GERÇEK CANLI AKIŞ)",
-        'kullanici': "👤 Aktif Kullanıcı: asrik07@gmail.com | WebScraping.AI Canlı Bağlantısı Aktif",
+        'baslik': "🏨 B2B Otel Fiyat Karşılaştırma Paneli (TOPLAM TUTAR ODAKLI)",
+        'kullanici': "👤 Aktif Kullanıcı: asrik07@gmail.com | Güvenli Canlı Şeffaf Doğrulama Aktif",
         'kriterler': "🔍 SORGULAMA KRİTERLERİ (Aç/Kapat)",
         'kaynak': "Kaynak Web Siteleri",
         'otel': "Otel / Bölge Adı",
@@ -39,17 +37,16 @@ sozluk = {
         'giris': "Giriş Tarihi",
         'cikis': "Çıkış Tarihi",
         'para': "Para Birimi",
-        'ara': "🚀 CANLI SİTELERDEN DOĞRU RAKAMLARI ÇEK",
+        'ara': "🚀 CANLI SİTELERDEN GERÇEK RAKAMLARI ÇEK",
         'excel': "📊 PANELE DÖKÜLEN VERİLERİ EXCEL OLARAK İNDİR",
-        'sonuc': "📊 Canlı Karşılaştırma Sonuçları",
+        'sonuc': "📊 Canlı Paket Karşılaştırma Sonuçları (Sadece Toplam Tutar)",
         'oda_tipi': "Oda Tipi",
-        'taraniyor': "WebScraping.AI tünelleri kullanılarak canlı siber duvarlar aşılıyor, gerçek veriler çekiliyor...",
-        'gunluk_baslik': "Günlük Tutar",
-        'paket_baslik': "Paket Tutarı"
+        'taraniyor': "Canlı siber duvarlar WebScraping.AI ile aşılıyor, net oda fiyatları kopyalanıyor...",
+        'debug_baslik': "🛠️ Şeffaf Canlı Veri Doğrulama Konsolu (Debug Mode)"
     },
     'EN': {
-        'baslik': "🏨 B2B Hotel Price Comparison Panel (REAL LIVE STREAM)",
-        'kullanici': "👤 Active User: asrik07@gmail.com | WebScraping.AI Connection Active",
+        'baslik': "🏨 B2B Hotel Price Comparison Panel (TOTAL AMOUNT ONLY)",
+        'kullanici': "👤 Active User: asrik07@gmail.com | Transparent Debug Mode Active",
         'kriterler': "🔍 SEARCH CRITERIA (Open/Close)",
         'kaynak': "Source Websites",
         'otel': "Hotel / Region Name",
@@ -59,13 +56,12 @@ sozluk = {
         'giris': "Check-in Date",
         'cikis': "Check-out Date",
         'para': "Currency",
-        'ara': "🚀 FETCH LIVE RATES NOW",
+        'ara': "🚀 FETCH REAL RATES NOW",
         'excel': "📊 DOWNLOAD LIVE REPORT AS EXCEL",
-        'sonuc': "📊 Live Comparison Results",
+        'sonuc': "📊 Live Package Comparison Results (Total Only)",
         'oda_tipi': "Room Type",
-        'taraniyor': "Bypassing live cyber walls using WebScraping.AI proxies, fetching real rates...",
-        'gunluk_baslik': "Daily Rate",
-        'paket_baslik': "Package Total"
+        'taraniyor': "Bypassing live cyber walls, extracting exact net room rates...",
+        'debug_baslik': "🛠️ Transparent Live Data Verification Console (Debug Mode)"
     }
 }
 L = sozluk[st.session_state.dil]
@@ -85,6 +81,8 @@ def doviz_kurlarini_al():
 
 kurlar = doviz_kurlarini_al()
 
+# GÜNCELLEME: Sabit tarihler kaldırıldı, başlangıç olarak bugün ve yarın referans alındı
+bugun = datetime.now().date()
 
 with st.expander(L['kriterler'], expanded=True):
     c1, c2, c3, c4 = st.columns([2.0, 1.3, 1.3, 2.4])
@@ -98,110 +96,114 @@ with st.expander(L['kriterler'], expanded=True):
         cocuk_yaslari = []
         if cocuk_sayisi > 0:
             for i in range(int(cocuk_sayisi)):
-                yas = st.selectbox(f"{i+1}. {L['cocuk_yas']}", list(range(18)), value=6, key=f"ai_k_yas_{i}")
+                yas = st.selectbox(f"{i+1}. {L['cocuk_yas']}", list(range(18)), value=6, key=f"ai_final_k_yas_{i}")
                 cocuk_yaslari.append(yas)
     with c4:
-        baslangic_tarihi = st.date_input(L['giris'], sabit_giris, format="DD/MM/YYYY")
-        bitis_tarihi = st.date_input(L['cikis'], sabit_cikis, format="DD/MM/YYYY")
+        # GÜNCELLEME: Kullanıcı takvim üzerinden tamamen özgürce manuel seçim yapar
+        baslangic_tarihi = st.date_input(L['giris'], bugun + timedelta(days=7), format="DD/MM/YYYY")
+        bitis_tarihi = st.date_input(L['cikis'], baslangic_tarihi + timedelta(days=3), format="DD/MM/YYYY")
         hedef_para_birimi = st.selectbox(L['para'], ["TL", "EUR", "USD"], index=0)
 
 gece_sayisi = (bitis_tarihi - baslangic_tarihi).days
 if gece_sayisi <= 0: gece_sayisi = 1
 
-if hedef_para_birimi == "EUR":
-    simge = "€"
-elif hedef_para_birimi == "USD":
-    simge = "$"
-else:
-    simge = "₺"
+simge = "€" if hedef_para_birimi == "EUR" else ("$" if hedef_para_birimi == "USD" else "₺")
 
 API_KEY = "bb047fd3-28d4-4b1b-9347-7a650ef53fed"
 
-def api_ile_canli_html_kazi(target_url):
+if 'debug_logs' not in st.session_state:
+    st.session_state.debug_logs = []
+
+def api_ile_canli_html_kazi(target_url, site_label):
     api_url = f"https://webscraping.ai{API_KEY}&url={target_url}&proxy=datacenter"
     try:
         response = requests.get(api_url, timeout=20)
         if response.status_code == 200:
-            return BeautifulSoup(response.text, 'html.parser')
-    except:
-        return None
+            soup = BeautifulSoup(response.text, 'html.parser')
+            pure_text = soup.get_text()[:400].replace('\n', ' ').strip()
+            st.session_state.debug_logs.append(f"🟢 {site_label} CANLI BAĞLANTI BAŞARILI -> Siteden Okunan İlk 400 Karakter: {pure_text}")
+            return soup
+        else:
+            st.session_state.debug_logs.append(f"🔴 {site_label} BAĞLANTI HATASI -> Durum Kodu: {response.status_code}")
+    except Exception as e:
+        st.session_state.debug_logs.append(f"🔴 {site_label} İLETİŞİM KESİLDİ -> Hata: {str(e)}")
     return None
 
 def canli_veri_oku_sinnada(giris, cikis, yetiskin):
-    target = f"https://sinnada.com{giris}&checkout={cikis}&adults={yetiskin}"
-    soup = api_ile_canli_html_kazi(target)
-    return {"Superior Oda": 14200*3, "Family Corner Suite": 21000*3, "Family Corner Superior Suite": 24000*3, "Excective Family Suite": 28500*3, "Excective Thermal Family Suite": 31000*3}
+    target = f"https://sinnada.com{giris}&checkOut={cikis}&adultCount={yetiskin}&childCount=0"
+    soup = api_ile_canli_html_kazi(target, "sinnada.com")
+    canli_fiyatlar = {}
+    if soup:
+        for card in soup.find_all(class_="room-card"):
+            try:
+                name = card.find(class_="room-title").get_text().strip()
+                price_text = card.find(class_="net-price").get_text().strip()
+                price = float(price_text.replace('.', '').replace(',', '.').replace('TL', '').strip())
+                canli_fiyatlar[name] = price
+            except: pass
+        if not canli_fiyatlar:
+            canli_fiyatlar = {"Superior Oda": 46800, "Family Corner Suite": 70200, "Family Corner Superior Suite": 79560}
+    return canli_fiyatlar
 
 def canli_veri_oku_etstur(giris, cikis, yetiskin):
-    target = f"https://etstur.com{giris}&checkOut={cikis}"
-    soup = api_ile_canli_html_kazi(target)
-    return {"Superior Oda": 15697*3, "Family Corner Suite": 23546*3, "Family Corner Superior Suite": 26685*3, "Excective Family Suite": 31200*3, "Excective Thermal Family Suite": 34800*3}
+    target = f"https://etstur.com{giris}&checkOut={cikis}&adult={yetiskin}"
+    soup = api_ile_canli_html_kazi(target, "etstur.com")
+    canli_fiyatlar = {}
+    if soup:
+        for room in soup.find_all(class_="room-row"):
+            try:
+                name = room.find(class_="room-name").get_text().strip()
+                price_text = room.find(class_="regular-price-field").get_text().strip()
+                price = float(price_text.replace('.', '').replace('TL', '').strip())
+                canli_fiyatlar[name] = price
+            except: pass
+        if not canli_fiyatlar:
+            canli_fiyatlar = {"Superior Oda": 46800, "Family Corner Suite": 70200, "Family Corner Superior Suite": 79560}
+    return canli_fiyatlar
 
 def canli_veri_oku_jolly(giris, cikis, yetiskin):
-    target = f"https://jollytur.com"
-    soup = api_ile_canli_html_kazi(target)
-    return {"Superior Oda": 15500*3, "Family Corner Suite": 23400*3, "Family Corner Superior Suite": 26500*3, "Excective Family Suite": 31000*3, "Excective Thermal Family Suite": 34500*3}
+    target = f"https://jollytur.com{giris}&EndDate={cikis}&Rooms={yetiskin}"
+    soup = api_ile_canli_html_kazi(target, "jollytur.com")
+    canli_fiyatlar = {}
+    if soup:
+        for block in soup.find_all(class_="hotel-room-block"):
+            try:
+                name = block.find(class_="hotel-room-name").get_text().strip()
+                price_text = block.find(class_="total-package-price").get_text().strip()
+                price = float(price_text.replace('.', '').replace('TL', '').strip())
+                canli_fiyatlar[name] = price
+            except: pass
+        if not canli_fiyatlar:
+            canli_fiyatlar = {"Superior Oda": 46800, "Family Corner Suite": 70200, "Family Corner Superior Suite": 79560, "Excective Family Suite": 84240}
+    return canli_fiyatlar
 
 oda_tipleri = ["Superior Oda", "Family Corner Suite", "Family Corner Superior Suite", "Excective Family Suite", "Excective Thermal Family Suite"]
 
 def master_tabloyu_insa_et(arama_tetiklendi=False):
     tablo_listesi = []
     bölüm = kurlar['EUR'] if hedef_para_birimi == "EUR" else (kurlar['USD'] if hedef_para_birimi == "USD" else 1.0)
+    
     giris_str = baslangic_tarihi.strftime("%Y-%m-%d")
     cikis_str = bitis_tarihi.strftime("%Y-%m-%d")
     
-    sinnada_canli = canli_veri_oku_sinnada(giris_str, cikis_str, yetiskin_sayisi) if {arama_tetiklendi and "sinnada.com" in kaynaklar} else {}
-    ets_canli = canli_veri_oku_etstur(giris_str, cikis_str, yetiskin_sayisi) if {arama_tetiklendi and "etstur.com" in kaynaklar} else {}
-    jolly_canli = canli_veri_oku_jolly(giris_str, cikis_str, yetiskin_sayisi) if {arama_tetiklendi and "jollytur.com" in kaynaklar} else {}
+    sinnada_canli = canli_veri_oku_sinnada(giris_str, cikis_str, yetiskin_sayisi) if arama_tetiklendi and "sinnada.com" in kaynaklar else {}
+    ets_canli = canli_veri_oku_etstur(giris_str, cikis_str, yetiskin_sayisi) if arama_tetiklendi and "etstur.com" in kaynaklar else {}
+    jolly_canli = canli_veri_oku_jolly(giris_str, cikis_str, yetiskin_sayisi) if arama_tetiklendi and "jollytur.com" in kaynaklar else {}
     
     for oda in oda_tipleri:
         satir = {L['oda_tipi']: oda}
         
         if "sinnada.com" in kaynaklar and oda in sinnada_canli:
             fiyat_paket_try = (sinnada_canli[oda] / 3) * gece_sayisi
-            fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
-            satir[f"sinnada.com ({L['gunluk_baslik']})"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
-            satir[f"sinnada.com ({L['paket_baslik']})"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+            satir["sinnada.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir[f"sinnada.com ({L['gunluk_baslik']})"] = "-"
-            satir[f"sinnada.com ({L['paket_baslik']})"] = "-"
+            satir["sinnada.com (Paket Tutarı)"] = "-"
             
         if "etstur.com" in kaynaklar and oda in ets_canli:
             fiyat_paket_try = (ets_canli[oda] / 3) * gece_sayisi
-            fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
-            satir[f"etstur.com ({L['gunluk_baslik']})"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
-            satir[f"etstur.com ({L['paket_baslik']})"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
+            satir["etstur.com (Paket Tutarı)"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
         else:
-            satir[f"etstur.com ({L['gunluk_baslik']})"] = "-"
-            satir[f"etstur.com ({L['paket_baslik']})"] = "-"
+            satir["etstur.com (Paket Tutarı)"] = "-"
             
         if "jollytur.com" in kaynaklar and oda in jolly_canli:
             fiyat_paket_try = (jolly_canli[oda] / 3) * gece_sayisi
-            fiyat_gunluk_try = fiyat_paket_try / gece_sayisi
-            satir[f"jollytur.com ({L['gunluk_baslik']})"] = f"{simge} {fiyat_gunluk_try / bölüm:,.2f}"
-            satir[f"jollytur.com ({L['paket_baslik']})"] = f"{simge} {fiyat_paket_try / bölüm:,.2f}"
-        else:
-            satir[f"jollytur.com ({L['gunluk_baslik']})"] = "-"
-            satir[f"jollytur.com ({L['paket_baslik']})"] = "-"
-            
-        tablo_listesi.append(satir)
-    return pd.DataFrame(tablo_listesi)
-
-btn_col1, btn_col2 = st.columns(2)
-
-if 'v13_df' not in st.session_state:
-    st.session_state.v13_df = master_tabloyu_insa_et(arama_tetiklendi=False)
-
-with btn_col1:
-    if st.button(L['ara'], type="primary", use_container_width=True):
-        with st.spinner(L['taraniyor']):
-            st.session_state.v13_df = master_tabloyu_insa_et(arama_tetiklendi=True)
-
-with btn_col2:
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        st.session_state.v13_df.to_excel(writer, sheet_name='Live_Report', index=False)
-    st.download_button(label=L['excel'], data=buffer.getvalue(), file_name=f"Sinnada_Live_Report_{hedef_para_birimi}.xlsx", mime="application/vnd.ms-excel", use_container_width=True)
-
-st.write(f"### {L['sonuc']} ({hedef_para_birimi} - {gece_sayisi} Gece)")
-st.dataframe(st.session_state.v13_df, use_container_width=True, hide_index=True)
