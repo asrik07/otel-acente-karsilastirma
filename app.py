@@ -110,7 +110,7 @@ with st.expander(L['kriterler'], expanded=True):
 gece_sayisi = (bitis_tarihi - baslangic_tarihi).days
 if gece_sayisi <= 0: gece_sayisi = 1
 
-simge = "€" if hedef_para_birimi == "EUR" else ("$" if毀edef_para_birimi == "USD" else "₺")
+simge = "€" if hedef_para_birimi == "EUR" else ("$" if hedef_para_birimi == "USD" else "₺")
 if hedef_para_birimi == "TL": simge = "₺"
 
 API_KEY = "bb047fd3-28d4-4b1b-9347-7a650ef53fed"
